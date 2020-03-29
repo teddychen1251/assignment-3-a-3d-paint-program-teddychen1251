@@ -6,6 +6,7 @@ export class StatusBar {
     header: Rectangle;
     scrollRegion: ScrollViewer;
     logs: StackPanel;
+    lastLog!: TextBlock;
     minimized: boolean = true;
 
     public constructor(headerColor: string, textAreaColor: string, verticalAlignment?: number) {
@@ -31,13 +32,17 @@ export class StatusBar {
 
         this.logs = new StackPanel();
         this.logMessage("Welcome to Draw3D");
-        this.scrollRegion.addControl(this.logs);
 
         this.header.onPointerUpObservable.add(() => {
             this.container.zIndex = 777;
-            this.scrollRegion.height = this.minimized ? `${512 - 20}px` : "25px";
             this.minimized = !this.minimized;
-            this.scrollRegion.verticalBar.value = 1;
+            this.scrollRegion.height = this.minimized ? "25px" : `${512 - 20}px`;
+            this.scrollRegion.clearControls();
+            if (this.minimized) {
+                this.scrollRegion.addControl(this.lastLog);
+            } else {
+                this.scrollRegion.addControl(this.logs);
+            }
         });
 
         this.container.addControl(this.header);
@@ -45,18 +50,24 @@ export class StatusBar {
     }
     // TODO: fix wrapping for big strings
     logMessage(message: string) {
+        this.logs.addControl(this.generateLog(message));
+        this.lastLog = this.generateLog(message);
+        if (this.minimized) {
+            this.scrollRegion.clearControls();
+            this.scrollRegion.addControl(this.lastLog);
+        }
+        while (this.logs.children.length > 70) {
+            this.logs.children.shift();
+        }
+    }
+
+    private generateLog(message: string): TextBlock {
         let log = new TextBlock(undefined, message);
         log.textWrapping = TextWrapping.WordWrap;
         log.resizeToFit = true;
         log.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
         log.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
         log.paddingLeft = "5px";
-        this.logs.addControl(log);
-        if (this.scrollRegion.verticalBar.value) {
-            this.scrollRegion.verticalBar.value = 1;
-        }       
-        while (this.logs.children.length > 70) {
-            this.logs.children.shift();
-        }
+        return log;
     }
 }

@@ -11,7 +11,7 @@ export class UI3D {
     scene: Scene
     xr: WebXRDefaultExperience
     mainPanel: Mesh
-    toolPalette!: ToolPalette;
+    toolPalette!: ToolPalette
 
     constructor(scene: Scene, xr: WebXRDefaultExperience) {
         this.scene = scene;
@@ -19,6 +19,7 @@ export class UI3D {
 
         this.mainPanel = MeshBuilder.CreatePlane("UI", { width: 8, height: 4 }, scene);
         this.mainPanel.position = new Vector3(0, 2, 8);
+
         this.buildUI();
 
         this.registerSummonMenu();
@@ -64,14 +65,27 @@ export class UI3D {
                                 this.calcPositionAndRotation();
                             }
                         }
-                    });
+                    });                
                 }
             });
         })
     }
 
-    private calcPositionAndRotation() {
-        
+    private calcPositionAndRotation() { 
+        let cameraYawRotation = this.xr.baseExperience.camera.rotationQuaternion.y;
+        if (-.25 < cameraYawRotation && cameraYawRotation <= .25) {
+            this.mainPanel.position = new Vector3(0, 2, 8);
+            this.mainPanel.rotation = new Vector3(0, 0, 0);
+        } else if (.25 < cameraYawRotation && cameraYawRotation <= .75) {
+            this.mainPanel.position = new Vector3(-8, 2, 0);
+            this.mainPanel.rotation = new Vector3(0, -Math.PI / 2, 0);
+        } else if (.75 < cameraYawRotation || cameraYawRotation <= -.75) {
+            this.mainPanel.position = new Vector3(0, 2, -8);
+            this.mainPanel.rotation = new Vector3(0, Math.PI, 0);
+        } else {
+            this.mainPanel.position = new Vector3(8, 2, 0);
+            this.mainPanel.rotation = new Vector3(0, Math.PI / 2, 0);
+        }
     }
 
 }
