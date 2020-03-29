@@ -5,11 +5,12 @@ import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { PointLight } from "@babylonjs/core/Lights/pointLight";
 import { WebXROculusTouchMotionController } from "@babylonjs/core/XR/motionController/webXROculusTouchMotionController";
-import { Color3, Texture, CubeTexture, Camera, WebXRCamera, WebXRMotionControllerManager } from "@babylonjs/core"
+import { Color3, Texture, CubeTexture, Camera, WebXRCamera, WebXRMotionControllerManager, WebXRFeaturesManager, WebXRControllerPointerSelection } from "@babylonjs/core"
 import "@babylonjs/core/materials/standardMaterial";
 
 import { UI3D } from "./ui3d";
-// import { Canvas } from "./canvas";
+import { Canvas } from "./canvas";
+import { DrawingTools } from "./drawingtools";
 
 // Required side effects to populate the Create methods on the mesh class. Without this, the bundle would be smaller but the createXXX methods from mesh would not be accessible.
 import {MeshBuilder} from  "@babylonjs/core/Meshes/meshBuilder";
@@ -30,40 +31,34 @@ class Draw3D {
             groundTexture: new Texture("textures/wood.jpg", scene),
         });
 
-        const xr = await scene.createDefaultXRExperienceAsync({
-            floorMeshes: [envHelper?.ground!]
-        });
+        const xr = await scene.createDefaultXRExperienceAsync({});
+
         const ui3D = new UI3D(scene, xr);
 
-        // const threeCanvas = new Canvas(scene, xr, toolPalette);
+        const threeCanvas = new Canvas(scene);
+        const drawingTools = new DrawingTools(xr, scene, threeCanvas, ui3D.toolPalette);
+
+        xr.input.onControllerAddedObservable.add(inputSource => {
+            inputSource.onMotionControllerInitObservable.add(controller => {
+                if (controller.handness === "left") {
+                    controller.getComponent("y-button").onButtonStateChangedObservable.add(state => {
+                        if (state.pressed) {
+                            xr.pointerSelection.displayLaserPointer = !xr.pointerSelection.displayLaserPointer;
+                            xr.pointerSelection.displaySelectionMesh = !xr.pointerSelection.displaySelectionMesh;
+                            // selection not being displayed
+                            if (!xr.pointerSelection.displayLaserPointer) {
+                                drawingTools.activate();
+                            } else {
+                                drawingTools.deactivate();
+                            }                      
+                        }
+                    });
+                }
+            });
+        });
 
         return scene;
     }
-
-    // private static calculatePanelPosition(camera: WebXRCamera) {
-    //     let cameraYawRotation = camera.deviceRotationQuaternion.y;
-    //     if (-.25 < cameraYawRotation && cameraYawRotation <= .25) {
-    //         return new Vector3(0, 2, 8);
-    //     } else if (.25 < cameraYawRotation && cameraYawRotation <= .75) {
-    //         return new Vector3(8, 2, 0);
-    //     } else if (.75 < cameraYawRotation || cameraYawRotation <= -.75) {
-    //         return new Vector3(0, 2, -8);
-    //     } else {
-    //         return new Vector3(-8, 2, 0);
-    //     }
-    // }
-    // private static calculatePanelRotation(camera: WebXRCamera) {
-    //     let cameraYawRotation = camera.deviceRotationQuaternion.y;
-    //     if (-.25 < cameraYawRotation && cameraYawRotation <= .25) {
-    //         return new Vector3(0, 0, 0);
-    //     } else if (.25 < cameraYawRotation && cameraYawRotation <= .75) {
-    //         return new Vector3(0, Math.PI / 2, 0);
-    //     } else if (.75 < cameraYawRotation || cameraYawRotation <= -.75) {
-    //         return new Vector3(0, Math.PI, 0);
-    //     } else {
-    //         return new Vector3(0, -Math.PI / 2, 0);
-    //     }
-    // }
 }
 
 /******* End of the create scene function ******/    

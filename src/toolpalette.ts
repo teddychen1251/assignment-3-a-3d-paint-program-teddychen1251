@@ -1,5 +1,5 @@
 import { Container, Rectangle, TextBlock, Control, ScrollViewer, TextWrapping, StackPanel, Button, Grid, ColorPicker } from "@babylonjs/gui/2D";
-import { Animation, Node, Color3 } from "@babylonjs/core";
+import { Animation, Node, Color3, Observable } from "@babylonjs/core";
 import { StatusBar } from "./statusbar";
 
 export class ToolPalette {
@@ -14,6 +14,7 @@ export class ToolPalette {
     statusBar: StatusBar;
     currentTexture: string = "";
     currentTool: string = "";
+    onCurrentToolChangedObservable: Observable<void> = new Observable();
 
     constructor(width: string, height: string, background: string, statusBar: StatusBar, secondaryHorAlign?: number, secondaryVertAlign?: number) {
         this.width = width;
@@ -44,6 +45,7 @@ export class ToolPalette {
             line.background = "darkgrey";
             this.statusBar.logMessage("Line tool clicked");
             this.currentTool = "line";
+            this.onCurrentToolChangedObservable.notifyObservers();
         });
         let pen = Button.CreateImageOnlyButton("Pen", "textures/pen.png");
         pen.height = `${heightAsNum / 5}px`;
@@ -52,6 +54,7 @@ export class ToolPalette {
             pen.background = "darkgrey";
             this.statusBar.logMessage("Pen tool clicked");
             this.currentTool = "pen";
+            this.onCurrentToolChangedObservable.notifyObservers();
         });
         let eraser = Button.CreateImageOnlyButton("Eraser", "textures/eraser.png");
         eraser.height = `${heightAsNum / 5}px`;
@@ -60,6 +63,7 @@ export class ToolPalette {
             eraser.background = "darkgrey";
             this.statusBar.logMessage("Eraser tool clicked");
             this.currentTool = "eraser";
+            this.onCurrentToolChangedObservable.notifyObservers();
         });
         let brush = Button.CreateImageOnlyButton("Brush", "textures/brush.png");
         brush.height = `${heightAsNum / 5}px`;
