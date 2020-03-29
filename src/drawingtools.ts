@@ -38,10 +38,22 @@ export class DrawingTools {
         
         // set all tooltips to controller pos
         this.xr.input.onControllerAddedObservable.add(inputSource => {
-            this.lineTip.parent = inputSource.pointer;
-            this.penTip.parent = inputSource.pointer;
-            this.eraser.parent = inputSource.pointer;
-            this.eraser.position.z += .01;
+            inputSource.onMotionControllerInitObservable.add(controller => {
+                if (controller.handness === "right") {
+                    controller.onModelLoadedObservable.add(loadedController => {
+                        let pointer = loadedController.rootMesh!;
+                        this.lineTip.parent = pointer;
+                        this.lineTip.position.x -= .0075;
+                        this.lineTip.position.z -= .06;
+                        this.penTip.parent = pointer;
+                        this.penTip.position.x -= .0075;
+                        this.penTip.position.z -= .06;
+                        this.eraser.parent = pointer;
+                        this.eraser.position.x -= .01
+                        this.eraser.position.z -= .075;
+                    });
+                }
+            });
         });
     }
 
@@ -99,7 +111,9 @@ export class DrawingTools {
     }
 
     private setLineAsCurrent = () => this.currentAction = this.drawLine;
-    private drawLine() {}
+    private drawLine() {
+
+    }
 
     private setStrokeAsCurrent = () => this.currentAction = this.drawStroke;
     private drawStroke() {}
