@@ -1,6 +1,10 @@
 # Assignment 3: A 3D Paint Program
 
 This is an INDIVIDUAL assignment.
+
+## Instructions
+Press Y to toggle rays (for switching between selecting/drawing)
+Press B to togge the UI
  
 ## Due: Monday March 23th, 11:59pm
 
