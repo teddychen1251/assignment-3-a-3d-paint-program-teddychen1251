@@ -125,8 +125,11 @@ export class ToolPalette {
                 textureButton.onPointerUpObservable.add(() => {
                     if (this.currentTexture === `textures/${brushTextures[i * 2 + j]}`) {
                         this.currentTexture = "";
+                        textureButton.background = "";
                     } else {
                         this.currentTexture = `textures/${brushTextures[i * 2 + j]}`;
+                        this.clearButtons(...(this.brushPalette.children as Button[]));
+                        textureButton.background = "darkgrey";
                     }
                 });
             }

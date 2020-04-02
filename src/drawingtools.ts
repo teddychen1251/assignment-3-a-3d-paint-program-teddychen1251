@@ -14,10 +14,13 @@ export class DrawingTools {
     private penTip: Mesh
     private eraser: Mesh
     private currentAction: () => void = () => {}
-    private ribbonBuffer: Vector3[][] = [[], []]
-    private currentRibbon: Mesh = new Mesh("");
-    private triggerPressed: boolean = false;
-    private frameCount: number = 0;
+    private lineBuffer: Vector3[][] = [[], []]
+    private strokeBuffer: Vector3[][] = [[], []]
+    private currentRibbon: Mesh = new Mesh("")
+    private triggerPressed: boolean = false
+    private frameCount: number = 0
+
+    static EVERY_NTH_FRAME = 4;
 
     constructor(xr: WebXRDefaultExperience, scene: Scene, canvas: Canvas, toolPalette: ToolPalette) {
         this.xr = xr;
@@ -71,7 +74,7 @@ export class DrawingTools {
         // ribbon will be dynamicly created during trigger pressed
         scene.registerBeforeRender(() => {
             if (!this.triggerPressed) return;
-            this.frameCount %= 2;
+            this.frameCount %= DrawingTools.EVERY_NTH_FRAME;
             if (this.frameCount === 0) {
                 this.performCurrentSelection();
             }
@@ -90,13 +93,13 @@ export class DrawingTools {
     finishCurrentSelection() {
         switch (this.toolPalette.currentTool) {
             case "line":
+                this.canvas.addIndex();
                 this.canvas.addObject(this.currentRibbon!);
-                this.ribbonBuffer = [[], []];
+                this.lineBuffer = [[], []];
                 this.currentRibbon = new Mesh("");
                 break;
             case "pen":
-                this.canvas.addObject(this.createRibbon());
-                this.ribbonBuffer = [[], []];
+                this.strokeBuffer = [[], []];
                 this.currentRibbon = new Mesh("");
                 break;
             case "eraser":
@@ -154,34 +157,46 @@ export class DrawingTools {
     private registerLine() {
         let lineTipPosWorld = this.lineTip.getAbsolutePosition();
         let controllerRotation = (this.lineTip.parent as AbstractMesh).absoluteRotationQuaternion;
-        if (this.ribbonBuffer[0].length >= 2) {
-            this.ribbonBuffer[0].pop();
-            this.ribbonBuffer[1].pop();
+        if (this.lineBuffer[0].length >= 2) {
+            this.lineBuffer[0].pop();
+            this.lineBuffer[1].pop();
         }
-        this.ribbonBuffer[0].push(lineTipPosWorld.add(new Vector3(.02, 0, 0))
+        this.lineBuffer[0].push(lineTipPosWorld.add(new Vector3(.02, 0, 0))
             .rotateByQuaternionAroundPointToRef(controllerRotation, lineTipPosWorld, new Vector3()));
-        this.ribbonBuffer[1].push(lineTipPosWorld.add(new Vector3(-.02, 0, 0))
+        this.lineBuffer[1].push(lineTipPosWorld.add(new Vector3(-.02, 0, 0))
             .rotateByQuaternionAroundPointToRef(controllerRotation, lineTipPosWorld, new Vector3()));
-        if (this.ribbonBuffer[0].length === 2) {
+        if (this.lineBuffer[0].length === 2) {
             if (this.currentRibbon !== null) {
                 this.currentRibbon.dispose(true, true);
             }
-            this.currentRibbon = this.createRibbon();
+            this.currentRibbon = this.createRibbon(this.lineBuffer);
         }
     }
 
     private registerStroke() {
         let penTipPosWorld = this.penTip.getAbsolutePosition();
         let controllerRotation = (this.penTip.parent as AbstractMesh).absoluteRotationQuaternion;
-        this.ribbonBuffer[0].push(penTipPosWorld.add(new Vector3(.02, 0, 0))
+        this.strokeBuffer[0].push(penTipPosWorld.add(new Vector3(.02, 0, 0))
             .rotateByQuaternionAroundPointToRef(controllerRotation, penTipPosWorld, new Vector3()));
-        this.ribbonBuffer[1].push(penTipPosWorld.add(new Vector3(-.02, 0, 0))
+        this.strokeBuffer[1].push(penTipPosWorld.add(new Vector3(-.02, 0, 0))
             .rotateByQuaternionAroundPointToRef(controllerRotation, penTipPosWorld, new Vector3()));
-        if (this.ribbonBuffer[0].length === 2) {
-            this.currentRibbon = this.createRibbon();
+        
+        if (this.strokeBuffer[0].length === 1) {
+            this.canvas.addIndex();
+        } else {
+            if (this.strokeBuffer[0].length >= 3) {
+                let forwardPt = this.strokeBuffer[0][this.strokeBuffer[0].length - 1];
+                let backwardPt = this.strokeBuffer[0][this.strokeBuffer[0].length - 3];
+                let centerPt = this.strokeBuffer[0][this.strokeBuffer[0].length - 2];
+                let angle = Math.abs(Vector3.GetAngleBetweenVectors(forwardPt.subtract(centerPt), backwardPt.subtract(centerPt), Vector3.Up()));
+                if (100 * angle / Math.PI >= 95 && Vector3.Distance(forwardPt, backwardPt) < .3) {
+                    this.strokeBuffer[0].splice(-2, 1);
+                    this.strokeBuffer[1].splice(-2, 1);
+                    this.canvas.deleteObject(this.canvas.canvasObjects.length - 1);
+                }
+            }
+            this.currentRibbon = this.createRibbon([this.strokeBuffer[0].slice(-2), this.strokeBuffer[1].slice(-2)]);
             this.canvas.addObject(this.currentRibbon);
-            this.ribbonBuffer[0] = [this.ribbonBuffer[0][1]];
-            this.ribbonBuffer[1] = [this.ribbonBuffer[1][1]];
         }
     }
     
@@ -189,8 +204,8 @@ export class DrawingTools {
         this.canvas.erase(this.eraser);
     }
 
-    private createRibbon(): Mesh {
-        let newRibbon = MeshBuilder.CreateRibbon("", { pathArray: this.ribbonBuffer, sideOrientation: Mesh.DOUBLESIDE }, this.scene);
+    private createRibbon(pathArray: Vector3[][]): Mesh {
+        let newRibbon = MeshBuilder.CreateRibbon("", { pathArray: pathArray, sideOrientation: Mesh.DOUBLESIDE }, this.scene);
         let newMaterial = new StandardMaterial("", this.scene);
         newMaterial.backFaceCulling = false;
         newMaterial.diffuseColor = this.toolPalette.color.clone();

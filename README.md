@@ -8,8 +8,8 @@ Originally was going to have this due before spring break, but since some studen
 
 ## Name and GT user-id
 
-Name: 
-User ID:
+Name: Teddy Chen
+User ID: 903280806
 
 ## Rubric
 
