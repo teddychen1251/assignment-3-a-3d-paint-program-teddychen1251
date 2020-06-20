@@ -2,4 +2,4 @@
 
 ## Instructions
 Press Y to toggle rays (for switching between selecting/drawing)
-Press B to togge the UI
+Press B to toggle the UI
